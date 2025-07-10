@@ -4,14 +4,14 @@
 
 import numpy as np
 from itertools import combinations
-from utils.params import p, B, m, n, r
+from utils.params import p, B
 from joblib import Memory
 import os
 
 cache_dir = os.path.join(os.path.dirname(__file__), '.joblib_cache')
 memory = Memory(cache_dir, verbose=0)
 
-def gaussian_elimination_mod_p(matrix):
+def gaussian_elimination_mod_p(matrix, p):
     """Perform Gaussian elimination modulo p until we know whether the matrix is full rank or not.
     
     Args:
@@ -65,7 +65,7 @@ def gaussian_elimination_mod_p(matrix):
             return True
 
 
-def is_all_combinations_full_rank(H, t):
+def is_all_combinations_full_rank(H, t, p):
     """
     Check each possible combination of t columns in H to see if they are linearly independent - by checking if their submatrix is full rank.
     
@@ -80,12 +80,12 @@ def is_all_combinations_full_rank(H, t):
      # for each combination of t columns check the corresponding submatrix is full rank
     for col_idxs in combinations(range(cols), t):
         submatrix = H[:, col_idxs]
-        if not gaussian_elimination_mod_p(submatrix):
+        if not gaussian_elimination_mod_p(submatrix, p):
             return False  # found a dependent subset
     return True
 
 
-def find_max_t(H):
+def find_max_t(H, p):
     """
     Uses binary search to find the maximum t such that all column subsets of size t are linearly independent.
     
@@ -100,7 +100,7 @@ def find_max_t(H):
     max_t = 0
     while low <= high:
         mid = (low + high) // 2
-        if is_all_combinations_full_rank(H, mid): # we know d-1 is at least mid (it could be mid itself), just we want to find the max possible value for d-1 not just one that works
+        if is_all_combinations_full_rank(H, mid, p): # we know d-1 is at least mid (it could be mid itself), just we want to find the max possible value for d-1 not just one that works
             max_t = mid # we set the current value to the max, if we can't find a bigger value this will be final
             low = mid + 1
         else: # we know d-1 must be less than mid - there is a combination that is not linearly independent so we only need to check smaller size combinations since this combination exists for all sizes bigger than mid
@@ -112,7 +112,7 @@ def find_max_t(H):
     return max_t # if we get max_t =0 there is a bug
 
 
-def min_distance(PCM):
+def min_distance(PCM, p):
     """
     Given a parity-check matrix, calculates the minimum distance of the code defined by it.
 
@@ -121,7 +121,7 @@ def min_distance(PCM):
     Returns:
         int: Minimum distance of the code
     """
-    max_t = find_max_t(PCM)
+    max_t = find_max_t(PCM, p)
     return max_t + 1  # d = t + 1
 
 
@@ -129,18 +129,17 @@ def min_distance(PCM):
 # since this computation is expensive we put it inside a function, so not automatically ran when importing from this module
 # we also cache it once it has been performed for a given B, to save running the computation every time we want to import l into a new module
 # import value of l via: import get_l, on next line l = get_l()
-def get_l():
+def get_l(B, p, m, n, r):
     """Get value of l based on current B in this module."""
-
-    B_key = tuple(B.flatten()[:min(20, B.size)])  # cache only works with tuples
-    return _calculate_l(B_key)
+    B_tuple = tuple(B.flatten())  # cache only works with tuples
+    return _calculate_l(B_tuple, p, m, n, r)
 
 @memory.cache
-def _calculate_l(B_key): # the input to this function forms the cache key
+def _calculate_l(B_tuple, p, m, n, r): # Only B_key forms the cache key, but we pass all parameters
     """Calculate l based on B- persistently cached version"""
     print(f"Computing l for new B")
-    
-    d = min_distance(B.T)
+    B_array = np.array(B_tuple).reshape(-1, n)
+    d = min_distance(B_array.T, p)
     if (d-1)/2 > m*(1-r/p):
         l = m*(1-r/p)
     else:
@@ -153,7 +152,8 @@ def clear_cache():
     print("Cache cleared")
 
 
+
 if __name__ == "__main__":
     B_T = B.T  # Transpose to get parity-check matrix
-    min_dist = min_distance(B_T)
+    min_dist = min_distance(B_T, p)
     print(f"Minimum distance of the code defined by the parity-check matrix B^T is {min_dist}", "PCM is", B_T)

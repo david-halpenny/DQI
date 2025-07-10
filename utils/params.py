@@ -9,7 +9,7 @@ np.random.seed(42)  # For reproducibility
 q, t = 2, 2 # these determine p
 p = q**t
 m = int(30)
-n = int(20)
+n = int(10)
 field_p = range(p)  # Finite field F_p
 omega = np.exp(2j * np.pi / p) # pth root of unity
 Fs = [] 
