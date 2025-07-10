@@ -12,3 +12,6 @@ __pycache__/
 
 # Image files
 *.png
+
+# Joblib cache
+.joblib_cache/

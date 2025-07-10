@@ -13,3 +13,9 @@ In this repo I implement a quantum algorithm for optimisation called Decoded Qua
 ## Maintenance
 1. `pip freeze > requirements.txt` update dependencies
 2. update .gitignore
+3. remember to make `__init__.py` files in all directories you want to import from
+
+
+
+## Running
+1. `python -m quantum.test` run modules in quantum directory
