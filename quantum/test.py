@@ -1,5 +1,5 @@
 import qiskit as qs
-from utils.visualisation import save_circuit_image, visualise
+from utils.simulate import save_circuit_image, visualise
 
 def create_massive_circuit():
     """Create a 15-qubit circuit with many layers"""
