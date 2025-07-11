@@ -33,7 +33,14 @@ def visualise(circuit):
 
 
 def check_state(circuit):
-    """Measure circuit and display top results"""
+    """Measure circuit and display top results
+    
+    Args:
+        circuit (QuantumCircuit): The quantum circuit to measure.
+    
+    Returns:
+        None
+    """
     import qiskit as qs
     
     # Add measurements

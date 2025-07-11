@@ -6,9 +6,9 @@ import numpy as np
 
 np.random.seed(42)  # For reproducibility
 
-q, t = 2, 2 # these determine p
+q, t = 2, 4 # these determine p
 p = q**t
-m = int(30)
+m = int(20)
 n = int(15)
 field_p = range(p)  # Finite field F_p
 omega = np.exp(2j * np.pi / p) # pth root of unity

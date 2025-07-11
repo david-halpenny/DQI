@@ -15,6 +15,7 @@ def calc_weight_vec(l):
     a = [np.sqrt(k * (m - k + 1)) for k in range(1, l+1)]
     eigval, eigvec = eigh_tridiagonal(main_diag, a, select='i', select_range=(len(main_diag)-1, len(main_diag)-1)) # gets the largest eigenpair
     weight_vec = eigvec[:, 0]  / np.linalg.norm(eigvec[:, 0])
+    weight_vec = np.concatenate((weight_vec, np.zeros(int(2**(np.ceil(np.log2(l+1)))) - len(weight_vec)))) # so it is described in ambient space
     return weight_vec
 
     
