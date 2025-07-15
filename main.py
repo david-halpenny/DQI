@@ -6,26 +6,53 @@ from classical.min_distance import get_l, clear_cache
 l = get_l(B, p, m, n, r)
 
 import qiskit as qs
-from qiskit.circuit.library import RYGate
-from qiskit.circuit import ControlledGate
 from utils.simulate import visualise, save_circuit_image, check_state
 
-from classical.binary_tree import BinaryTree
 from classical.calc_weights import calc_weight_vec
 from quantum.gates import state_prep_unitary
+from quantum.binary_to_unary import binary_to_unary, position_mask_reg
+from quantum.unary_to_dicke import unitary_lm
+from scipy.special import comb
 
+
+# STEP 0: set up
 #set up four registers of qubits - weight and mask are subregisters of error
-total_qubits = int((m + n)*(np.ceil(np.log2(p))))
 error_register = qs.QuantumRegister(int(m*(np.ceil(np.log2(p)))))
 syndrome_register = qs.QuantumRegister(int(n*(np.ceil(np.log2(p)))))
 weight_register = error_register[: int(np.ceil(np.log2(l+1)))]
 mask_indices = [int(i * np.ceil(np.log2(p)) - 1) for i in range(1, m+1)] # least significant qubits on every np.ceil(np.log2(p)) qubits
 mask_register = [error_register[j] for j in mask_indices]
-ancilla_register = qs.QuantumRegister(len(weight_register) - 1)
-qc = qs.QuantumCircuit(ancilla_register, error_register, syndrome_register)
 
+# since we uncompute each time, we only need the max number of ancillas that get used in parallel
+# in state_prep_unitary we require len(weight_register) - 1
+# in unitary_ll we require one and np.ceil(m/l) of these unitaries are applied in parallel 
+# in each WDB we require one - but there can't be more than np.ceil(m/l) WDBs at any depth
+ancilla_no = max(len(weight_register) - 1, int(np.ceil(m/l)))
+ancilla_register = qs.QuantumRegister(ancilla_no) # 
+
+total_qubits = int((m + n)*(np.ceil(np.log2(p)))) + len(weight_register) - 1
+qc = qs.QuantumCircuit(error_register, syndrome_register, ancilla_register)
+
+
+# STEP 1: prepare a weighted superposition on the weight register that is optimal for DQIs performance
+# ----> sum_{k = 0}^l (w_k * |k>) 
 weight_vec = calc_weight_vec(l)
 state_prep_unitary(qc, weight_register, weight_vec, ancilla_register) # prepare the weight_vec state on the weight register, use ancilla for computations
 
-visualise(qc) # for when I want to see the circuit is being built as we hope - for all parameter sizes
-# check_state(qc) # for when I want to check the probabilistic state is what i would expect = for small parameter sizes
+
+# STEP 2: convert each |k> to |1^k, 0^{len(mask_register) - k}> on the mask register
+# ----> sum_{k = 0}^l (w_k * |1^k, 0^{len(mask_register) - k}>)
+position_mask_reg(qc, int(np.ceil(np.log2(l+1))), p, error_register)
+binary_to_unary(qc, int(np.ceil(np.log2(l+1))), l, mask_register)
+
+
+# STEP 3: apply U_l^m which transforms each unary representation of Hamming weight k in the superposition to a Dicke state of weiht k 
+unitary_lm(qc, mask_register, m, l, ancilla_register) 
+desired_state = weight_vec**2 / np.array([comb(m, k, exact=True) for k in range(len(weight_vec))])
+desired_state = np.round(desired_state, 3)
+print(f"Desired state probabilities: {desired_state}")
+
+
+# VERIFY CORRECTNESS
+check_state(qc, mask_register) # for when I want to check the probabilistic state is what i would expect = for small parameter sizes
+# clear_cache() # clear the cache of the min_distance function

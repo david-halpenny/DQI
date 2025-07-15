@@ -5,11 +5,13 @@ import numpy as np
 
 
 np.random.seed(42)  # For reproducibility
-
-q, t = 2, 4 # these determine p
+# t= 1, m =20, n =19, seed =42 gives a l = 5 that we can see gates are working
+# t= 1, m =10, n =9, seed =42 gives a l = 2 that we can measure
+q, t = 2,1 # these determine p
 p = q**t
-m = int(20)
-n = int(15)
+m = int(10)
+n = int(9)
+assert m > n
 field_p = range(p)  # Finite field F_p
 omega = np.exp(2j * np.pi / p) # pth root of unity
 Fs = [] 

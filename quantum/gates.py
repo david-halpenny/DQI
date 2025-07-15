@@ -14,7 +14,7 @@ def multi_controlled_gate(circuit, gate, target, controls, ancillas):
         gate (Gate): The gate to apply.
         target (Qubit): The target qubit for the gate.
         controls (list of Qubit): The control qubits.
-        ancillas (QuantumRegister): Ancilla register for intermediate computations.
+        ancillas (list or QuantumRegister): Ancilla qubits/ entire register for intermediate computations.
 
     Returns:
         None
@@ -25,7 +25,12 @@ def multi_controlled_gate(circuit, gate, target, controls, ancillas):
     if k == 1:
         # Single control case
         circuit.append(gate.control(1), [controls[0], target])
-    elif k > 1:
+    elif k == 2:
+        # Two controls case
+        circuit.ccx(controls[0], controls[1], ancillas[0])
+        circuit.append(gate.control(1), [ancillas[0], target])
+        circuit.ccx(controls[0], controls[1], ancillas[0])
+    elif k > 2:
         # Multi-control case
         ancilla_flag = ancillas[k - 2]
         circuit.ccx(controls[0], controls[1], ancillas[0])
@@ -71,7 +76,6 @@ def state_prep_unitary(circuit, qubits, vector, ancilla_register):
                 else:
                     control_qubits = qubits[:len(node.path)]
                     qubits_to_flip = [control_qubits[j] for j, bit in enumerate(node.path) if bit == 0]
-                    print(control_qubits)
                     # Apply X gates for negative controls
                     for qubit in qubits_to_flip:
                         circuit.x(qubit)
@@ -82,3 +86,32 @@ def state_prep_unitary(circuit, qubits, vector, ancilla_register):
                     # Undo X gates
                     for qubit in qubits_to_flip:
                         circuit.x(qubit)
+
+def swap_gate(circuit, qubit1, qubit2):
+    """Swap two qubits.
+
+    Args:
+        circuit (QuantumCircuit): The quantum circuit to modify.
+        qubit1 (Qubit): The first qubit to swap.
+        qubit2 (Qubit): The second qubit to swap.
+    Returns:
+        None
+    """
+    circuit.cx(qubit1, qubit2)
+    circuit.cx(qubit2, qubit1)
+    circuit.cx(qubit1, qubit2)
+
+def controlled_swap(circuit, control, qubit1, qubit2):
+    """Apply a swap gate between two qubits controlled on a third.
+
+    Args:
+        circuit (QuantumCircuit): The quantum circuit to modify.
+        control (Qubit): The control qubit.
+        qubit1 (Qubit): The first qubit to swap.
+        qubit2 (Qubit): The second qubit to swap.
+    Returns:
+        None
+    """
+    circuit.cx(qubit2, qubit1)
+    circuit.ccx(control, qubit1, qubit2)
+    circuit.cx(qubit2, qubit1)
