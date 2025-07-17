@@ -43,7 +43,7 @@ def multi_controlled_gate(circuit, gate, target, controls, ancillas):
 
         # uncompute ancillas
         circuit.ccx(controls[k-1], ancillas[k-3], ancilla_flag)
-        for i in range(k-2, 0, -1):
+        for i in range(k-2, 1, -1):
             circuit.ccx(controls[i], ancillas[i-2], ancillas[i-1])
         circuit.ccx(controls[0], controls[1], ancillas[0])
             

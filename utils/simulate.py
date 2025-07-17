@@ -56,13 +56,13 @@ def check_state(circuit, register=None):
         num_measured = circuit.num_qubits
 
     simulator = AerSimulator()
-    result = simulator.run(qc_measured, shots=10000).result()
+    result = simulator.run(qc_measured, shots=10000000).result()
     counts = result.get_counts()
 
-    print(f"Top measurement results ({num_measured} measured qubits, 10000 shots):")
-    for outcome, count in sorted(counts.items(), key=lambda x: x[1], reverse=True)[:50]:
+    print(f"Top measurement results ({num_measured} measured qubits, 10000000 shots):")
+    for outcome, count in sorted(counts.items(), key=lambda x: x[1], reverse=True)[:100]:
         reversed_outcome = outcome[::-1]
-        prob = count / 10000
-        print(f"|{reversed_outcome}⟩: {count} times ({prob:.3f})")
+        prob = count / 10000000
+        print(f"|{reversed_outcome}⟩: {count} times ({prob:.4f})")
     print(f"Total unique states observed: {len(counts)}")
 

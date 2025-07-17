@@ -31,7 +31,7 @@ class BinaryTree:
 
         # populate leaf nodes with values first
         for i, value in enumerate(vector):
-            node = Node(value**2) # probability of measurement
+            node = Node(np.abs(value)**2) # probability of measurement
             node.level = depth
             node.position = i
             self.levels[depth].append(node)

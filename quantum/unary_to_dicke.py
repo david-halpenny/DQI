@@ -75,7 +75,8 @@ def unitary_lm(circuit, mask_reg, m, l, ancilla_register):
     # assert m == len(mask_reg)
     x0 = m
     y0_multiple = int((x0/2)//l)
-    y0 = l * y0_multiple if y0_multiple > 0 else l
+    y0_mult_rounded = round((x0/2) / l)
+    y0 = l * y0_mult_rounded if y0_multiple > 0 else l
     ancilla_dict = {} # this will keep track of how many ancillas we have assigned at each depth to allow for parallelisation
     
     log: List[Dict[str, object]] = []
@@ -128,10 +129,12 @@ def recursive_ordering(indices, y, min_qubits, depth, log):
 
     # Determine new y values for each child
     left_multiple = int(((x - y) / 2) // min_qubits)
-    left_y = min_qubits * left_multiple if left_multiple > 0 else int(x-y) % min_qubits
+    left_mult_rounded = round(((x - y) / 2) / min_qubits)
+    left_y = min_qubits * left_mult_rounded if left_multiple > 0 else int(x-y) % min_qubits
     # we have to ensure that if min_qubits <= x-y <= 2*min_qubits, that the y value for the next layer is x-y mod min_qubits so that the future x-y qubits is min_qubits in size
 
     right_multiple = int((len(right_indices) / 2) // min_qubits)
+    right_mult_rounded = round((len(right_indices) / 2) / min_qubits)
     right_y = min_qubits * right_multiple if right_multiple > 0 else int(len(right_indices)) % min_qubits
 
     # Recurse on each half, increasing depth
@@ -188,7 +191,11 @@ def wdb(circuit, qubits, x, y, l, ancilla_qubit, in_onehot = False):
             #         sum_{i=j-1}^{k} binom(y, i) * binom(x-y, k-i)
             #     )
             # )
-            alpha_jk = 2 * np.arccos(np.sqrt(X[j-1, k] / np.sum(X[j-1:k+1, k])))
+            denominator = np.sum(X[j-1:k+1, k])
+            if denominator == 0: # we want to apply the identity so no rotation, since this is saying the event that we are conditioning on doesn't happen
+                alpha_jk = 0  # arccos(sqrt(1)) = arccos(1) = 0
+            else:
+                alpha_jk = 2 * np.arccos(np.sqrt(X[j-1, k] / denominator))
             if j == 1:
                 circuit.cry(alpha_jk, used_qubits[k-1], used_qubits[l])
             else:

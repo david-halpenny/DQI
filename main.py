@@ -1,7 +1,7 @@
 # This is the main file that runs the DQI algorithm components that are in other modules.
 
 import numpy as np
-from utils.params import B, p, m, n, r
+from utils.params import B, p, m, n, r, field_p, omega, Fs
 from classical.min_distance import get_l, clear_cache
 l = get_l(B, p, m, n, r)
 
@@ -13,6 +13,9 @@ from quantum.gates import state_prep_unitary
 from quantum.binary_to_unary import binary_to_unary, position_mask_reg
 from quantum.unary_to_dicke import unitary_lm
 from scipy.special import comb
+from quantum.unitary_G import unitary_G
+from classical.objective_func import fourier_g
+from utils.verify import calc_desired
 
 
 # STEP 0: set up
@@ -27,9 +30,9 @@ mask_register = [error_register[j] for j in mask_indices]
 # in state_prep_unitary we require len(weight_register) - 1
 # in unitary_ll we require one and np.ceil(m/l) of these unitaries are applied in parallel 
 # in each WDB we require one - but there can't be more than np.ceil(m/l) WDBs at any depth
-ancilla_no = max(len(weight_register) - 1, int(np.ceil(m/l)))
+# for parrallel application of the m G_i's we need ceil(log2(p)) ancillas per G_i. for ancilla efficiency we use the syndrome register as ancillas at the moment
+ancilla_no = max(len(weight_register) - 1, int(np.ceil(m/l)), (m*(np.ceil(np.log2(p)) -1) - n*(np.ceil(np.log2(p)))))
 ancilla_register = qs.QuantumRegister(ancilla_no) # 
-
 total_qubits = int((m + n)*(np.ceil(np.log2(p)))) + len(weight_register) - 1
 qc = qs.QuantumCircuit(error_register, syndrome_register, ancilla_register)
 
@@ -46,13 +49,13 @@ position_mask_reg(qc, int(np.ceil(np.log2(l+1))), p, error_register)
 binary_to_unary(qc, int(np.ceil(np.log2(l+1))), l, mask_register)
 
 
-# STEP 3: apply U_l^m which transforms each unary representation of Hamming weight k in the superposition to a Dicke state of weiht k 
+# STEP 3: apply U_l^m which transforms each unary representation of Hamming weight k in the superposition to a Dicke state of weight k 
 unitary_lm(qc, mask_register, m, l, ancilla_register) 
-desired_state = weight_vec**2 / np.array([comb(m, k, exact=True) for k in range(len(weight_vec))])
-desired_state = np.round(desired_state, 3)
-print(f"Desired state probabilities: {desired_state}")
 
 
-# VERIFY CORRECTNESS
-check_state(qc, mask_register) # for when I want to check the probabilistic state is what i would expect = for small parameter sizes
-# clear_cache() # clear the cache of the min_distance function
+# STEP 4: apply G to the error register
+unitary_G(qc, error_register, m, p, r, field_p, omega, Fs, ancillas = list(ancilla_register) + list(syndrome_register))
+
+
+check_state(qc, error_register)
+# save_circuit_image(qc, "G_circuit.png")
