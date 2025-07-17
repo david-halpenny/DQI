@@ -8,6 +8,7 @@ np.random.seed(42)  # For reproducibility
 random.seed(42)     # ALSO seed the built-in random module!
 # t= 1, m =20, n =19, seed =42 gives a l = 5 that we can see gates are working
 # t= 1, m =10, n =9, seed =42 gives a l = 2 that we can measure
+# t= 2, m =10, n =9, seed =42 gives a l = 3 that we can measure
 q, t = 2,2 # these determine p
 p = q**t
 m = int(10)

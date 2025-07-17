@@ -20,7 +20,6 @@ def position_mask_reg(circuit, binary_dim, p, error_reg):
         None
     """
     assert len(error_reg) >= (int(np.ceil(np.log2(p))))*(2**binary_dim), "Total qubits must be 2^(binary_dim) to give space for the unary representation."
-
     i = 0
     j = binary_dim - 1
     # IDEA: we want to move the qubit in position i to position ceil(log2(p))*(2**(binary_dim - i)) - 1 (using zero-based indexing) 
@@ -65,28 +64,29 @@ def binary_to_unary(circuit, binary_dim, l, qubits):
     # STEP 1: |0, k_t, 0, k_{t-1}, 0,0,0, k_{t-2}, ... , 0 ..., 0, k_1> ----> |0^k 1 0^(2^t-k-1)>
     circuit.x(qubits[0])  
     circuit.cx(qubits[1], qubits[0]) 
-    for j in range(1, binary_dim -1):
-        for i in range(2**j -1):
-            controlled_swap(circuit, qubits[2**(j+1) - 1], qubits[i], qubits[2**(j) + i])
-        for i in range(2**j - 1):
-            circuit.cx(qubits[2**(j) + i], qubits[2**(j+1) - 1])
-        circuit.cx(qubits[2**(j+1) - 1], qubits[2**(j) - 1])
-    
-    # early stopping to considerably reduce the number of gates necessary
-    if l == 2**(binary_dim) -1:
-        # then there is no early stopping
-        for i in range(2**(binary_dim -1) - 1):
-            controlled_swap(circuit, qubits[2**(binary_dim) - 1], qubits[i], qubits[2**(binary_dim-1) + i])
-        for i in range(2**(binary_dim -1) - 1):
-            circuit.cx(qubits[2**(binary_dim-1) + i], qubits[2**(binary_dim) - 1])
-        circuit.cx(qubits[2**(binary_dim) - 1], qubits[2**(binary_dim-1) - 1])
-    # l is by definition <= 2**(binary_dim) - 1
-    else:
-        for i in range(l - 2**(binary_dim - 1) +1):
-            controlled_swap(circuit, qubits[2**(binary_dim) - 1], qubits[i], qubits[2**(binary_dim-1) + i])
-        for i in range(l - 2**(binary_dim - 1) +1):
-            circuit.cx(qubits[2**(binary_dim-1) + i], qubits[2**(binary_dim) - 1])
-        # don't need to clear the very last qubit since we are guranteed to have made an effective swap so already cleared
+    if l > 1:
+        for j in range(1, binary_dim -1):
+            for i in range(2**j -1):
+                controlled_swap(circuit, qubits[2**(j+1) - 1], qubits[i], qubits[2**(j) + i])
+            for i in range(2**j - 1):
+                circuit.cx(qubits[2**(j) + i], qubits[2**(j+1) - 1])
+            circuit.cx(qubits[2**(j+1) - 1], qubits[2**(j) - 1])
+        
+        # early stopping to considerably reduce the number of gates necessary
+        if l == 2**(binary_dim) -1:
+            # then there is no early stopping
+            for i in range(2**(binary_dim -1) - 1):
+                controlled_swap(circuit, qubits[2**(binary_dim) - 1], qubits[i], qubits[2**(binary_dim-1) + i])
+            for i in range(2**(binary_dim -1) - 1):
+                circuit.cx(qubits[2**(binary_dim-1) + i], qubits[2**(binary_dim) - 1])
+            circuit.cx(qubits[2**(binary_dim) - 1], qubits[2**(binary_dim-1) - 1])
+        # l is by definition <= 2**(binary_dim) - 1
+        else:
+            for i in range(l - 2**(binary_dim - 1) +1):
+                controlled_swap(circuit, qubits[2**(binary_dim) - 1], qubits[i], qubits[2**(binary_dim-1) + i])
+            for i in range(l - 2**(binary_dim - 1) +1):
+                circuit.cx(qubits[2**(binary_dim-1) + i], qubits[2**(binary_dim) - 1])
+            # don't need to clear the very last qubit since we are guranteed to have made an effective swap so already cleared
 
 
     # STEP 2: |0^k 1 0^(2^t-k-1)> ----> |1^k 0^(2^t-k)>

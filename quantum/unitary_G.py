@@ -38,7 +38,7 @@ def unitary_G(circuit, error_register, m, p, r, field_p, omega, Fs, ancillas):
 
 def sub_G(i, circuit, qubits, ancilla_qubits, p, r, field_p, omega, Fs):
     """
-    Applies the unitary G_i to the i^th subregister of the error register. 
+    Applies the unitary G_i to the i^th subregister of the error register. Using the theory of Householder reflections, we can implement G_i efficiently.
     G_i can be split up into four gates via G_i = V_i Z_0 V_i^dagger D_i where we define these gates as follows:
     
     V_i : the state preparation unitary that prepares a state v_i from |0>^{ceil(log_2(p))}
@@ -66,6 +66,9 @@ def sub_G(i, circuit, qubits, ancilla_qubits, p, r, field_p, omega, Fs):
     # STEP 0: Define v_i and e^{-i theta_i} = scalar
     scalar = np.conj(fourier_g(i, 1, Fs, p, r, field_p, omega))/ np.abs(np.conj(fourier_g(i, 1, Fs, p, r, field_p, omega)))
     N_i = np.sqrt(1 - fourier_g(i, 1, Fs, p, r, field_p, omega)*scalar - np.conj(fourier_g(i, 1, Fs, p, r, field_p, omega)*scalar) + np.sum([fourier_g(i, y, Fs, p, r, field_p, omega)*np.conj(fourier_g(i, y, Fs, p, r, field_p, omega)) for y in field_p if y != 0]))
+    if np.isclose(N_i, 0, atol=1e-12):
+        # then we are dealing with the zero vector and this means that the vector we are trying to reflect |1> into is itself - so we can skip entirely
+        return
     v_i = np.zeros(2**int(np.ceil(np.log2(p))), dtype=complex)
     v_i[0] = 0
     v_i[1] = 1 - (fourier_g(i, 1, Fs, p, r, field_p, omega)*scalar)
