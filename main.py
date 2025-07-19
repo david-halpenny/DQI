@@ -9,11 +9,12 @@ import qiskit as qs
 from utils.simulate import visualise, save_circuit_image, check_state
 
 from classical.calc_weights import calc_weight_vec
-from quantum.gates import state_prep_unitary
+from quantum.gates import state_prep_unitary, inverse_QFT
 from quantum.binary_to_unary import binary_to_unary, position_mask_reg
 from quantum.unary_to_dicke import unitary_lm
 from scipy.special import comb
 from quantum.unitary_G import unitary_G
+from quantum.adder import adder
 from classical.objective_func import fourier_g
 from utils.verify import calc_desired
 
@@ -58,6 +59,16 @@ unitary_lm(qc, mask_register, m, l, ancilla_register)
 unitary_G(qc, error_register, m, p, r, field_p, omega, Fs, ancillas = list(ancilla_register) + list(syndrome_register))
 # visualise(qc)
 
-# check_state(qc, error_register)
-# visualise(qc)
-# save_circuit_image(qc, "G_circuit.png")
+
+# STEP 5: add B^T y to the syndrome register for each y in the superposition
+adder(qc, error_register, syndrome_register, B, m, n, int(np.ceil(np.log2(p))))
+check_state(qc, list(error_register) + list(syndrome_register))
+
+# STEP 6 uncompute error register
+
+
+
+
+# STEP 7: apply the inverse QFT to the syndrome register
+for i in range(0, n):
+    inverse_QFT(qc, syndrome_register[i*(int(np.ceil(np.log2(p)))): (i+1)*(int(np.ceil(np.log2(p))))], p, swap=False)

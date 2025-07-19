@@ -3,6 +3,9 @@
 from classical.binary_tree import BinaryTree
 from qiskit.circuit.library import RYGate
 import numpy as np
+import qiskit as qs
+from qiskit.circuit import QuantumCircuit, QuantumRegister
+from utils.simulate import check_state, visualise
 
 
 def multi_controlled_gate(circuit, gate, target, controls, ancillas):
@@ -115,3 +118,47 @@ def controlled_swap(circuit, control, qubit1, qubit2):
     circuit.cx(qubit2, qubit1)
     circuit.ccx(control, qubit1, qubit2)
     circuit.cx(qubit2, qubit1)
+
+def QFT(circuit, qubits, p, swap = True):
+    """Apply a Quantum Fourier Transform to the specified qubits.
+
+    Args:
+        circuit (QuantumCircuit): The quantum circuit to modify.
+        qubits (list of Qubit or QuantumRegister): The qubits to apply the QFT on.
+    
+    Returns:
+        None
+    """
+    assert 2**len(qubits) == p, "Number of qubits must match the size of the field."
+    n = len(qubits)
+    for i in range(n):
+        circuit.h(qubits[i])
+        for j in range(i + 1, n):
+            angle = 2 * np.pi / (2 ** (j - i + 1))
+            circuit.cp(angle, qubits[j], qubits[i])
+    if swap == True:
+        for i in range(n // 2):
+            swap_gate(circuit, qubits[i], qubits[n - i - 1])
+    
+
+def inverse_QFT(circuit, qubits, p, swap = True):
+    """Apply the inverse Quantum Fourier Transform to the specified qubits.
+
+    Args:
+        circuit (QuantumCircuit): The quantum circuit to modify.
+        qubits (list of Qubit or QuantumRegister): The qubits to apply the inverse QFT on.
+    
+    Returns:
+        None
+    """
+    assert 2**len(qubits) == p, "Number of qubits must match the size of the field."
+    n = len(qubits)
+    if swap == True:
+        for i in range(n // 2):
+            swap_gate(circuit, qubits[i], qubits[n - i - 1])
+    for i in range(n - 1, -1, -1):
+        for j in range(i + 1, n):
+            angle = -2 * np.pi / (2 ** (j - i + 1))
+            circuit.cp(angle, qubits[j], qubits[i])
+        circuit.h(qubits[i])
+    
